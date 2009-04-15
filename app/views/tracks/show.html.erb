@@ -1,0 +1,88 @@
+<%- content_for :head do -%>
+<script type="text/javascript">
+  google.load("maps", "2");
+
+  function Point(latlng, time) {
+    this.latlng = latlng
+    this.time = time
+  }
+
+  
+  function initialize() {
+    var map = new google.maps.Map2(document.getElementById("map"));
+    
+    var lat = <%= @parsed['trk'].first['trkseg'].first['trkpt'].first['lat'] %>
+    var lng = <%= @parsed['trk'].first['trkseg'].first['trkpt'].first['lon'] %>
+    
+    map.addControl(new GLargeMapControl());
+    
+    map.setCenter(new google.maps.LatLng(lat,lng), 13);
+
+
+    var points = []
+
+    <%- @parsed['trk'].each do |track| -%>
+      <%- track['trkseg'].each do |seg| -%>
+        <%- seg['trkpt'].each do |point| -%>
+          points[points.length] = new Point(new GLatLng(<%= point['lat'] %>, <%= point['lon'] %>), '<%= point['time'][0] %>')
+        <%- end -%>
+      <%- end -%>
+    <%- end -%>
+
+    var polyline = new GPolyline(jQuery.map(points, function(e) {return e.latlng}), "#ff0000", 3);
+    map.addOverlay(polyline);
+    var marker = new GMarker(points[0])
+    map.addOverlay(marker)
+  
+    // $('.track-point').each(function(e) {
+    //   e.click( function(e) {
+    //     var match = this.match(/trackpoint_(\d+)/)
+    //     var i = parseInt(match[1])
+    //     marker.setLatLng(points[i])
+    //     e.stop();
+    //     return false
+    //   })
+    // })
+
+		$("#slider").slider({
+		  max: points.length - 1, 
+		  min: 0, 
+		  change: function(e, ui) {
+		    marker.setLatLng(points[ui.value].latlng)
+        $('#current-time').html(points[ui.value].time)
+		  },
+		  slide: function(e, ui) {
+		    marker.setLatLng(points[ui.value].latlng)		    
+        $('#current-time').html(points[ui.value].time)
+		  }
+		})
+    
+    $('#current-time').html(points[0].time)
+
+  }
+
+  google.setOnLoadCallback(initialize);
+
+  $(function() {
+  	});
+
+  
+</script>
+
+<%- end -%>
+<p>
+  <b>Title:</b>
+  <%=h @track.title %>
+</p>
+
+
+<div id="map"></div>
+
+<div id="list">
+  <div id="slider"><div id="slider-handle"></div></div>
+  
+  <p id="current-time"></p>
+
+</div>
+<%= link_to 'Edit', edit_track_path(@track) %> |
+<%= link_to 'Back', tracks_path %>
